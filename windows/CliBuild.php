@@ -41,6 +41,7 @@ class CliBuild
         if ($this->config->getExt('zstd')) {
             Util::zstdAPCufix();
         }
+        Util::patchGD();
 
         passthru(
             "cd src\\php-src && {$this->config->phpBinarySDKCmd} -t buildconf.bat",
@@ -103,6 +104,9 @@ class CliBuild
         }
         if ($this->config->getLib('curl')) {
             $extra_libs .= ' wldap32.lib normaliz.lib';
+        }
+        if ($this->config->getLib('libwebp')) {
+            $extra_libs .= ' libsharpyuv.lib';
         }
 
         file_put_contents('src\php-src\nmake_wrapper.bat',

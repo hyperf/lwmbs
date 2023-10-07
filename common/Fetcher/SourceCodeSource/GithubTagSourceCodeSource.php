@@ -19,13 +19,27 @@
 
 declare(strict_types=1);
 
-class GithubTarballSourceCodeSource extends SourceCodeSource
+class GithubTagSourceCodeSource extends SourceCodeSource
 {
+
     protected function validate()
     {
         if (!isset($this->config['repo'])) {
-            throw new Exception("key 'repo' is required for GithubTarballSourceCodeSource");
+            throw new Exception("key 'repo' is required for GithubTagSourceCodeSource");
         }
+        if (!isset($this->config['match'])) {
+            throw new Exception("key 'match' is required for GithubTagSourceCodeSource");
+        }
+    }
+
+    private static function normalizeTagVersion(string $tagVersion): string
+    {
+        if (preg_match('/^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/', $tagVersion)) {
+            return $tagVersion;
+        }
+        $tagVersion = str_replace('_', '.', $tagVersion);
+        $tagVersion = str_replace('-', '.', $tagVersion);
+        return $tagVersion;
     }
 
     public readonly string $url;
@@ -37,7 +51,7 @@ class GithubTarballSourceCodeSource extends SourceCodeSource
             return $this->url;
         }
 
-        Log::i("finding latest source tarball from github releases from {$this->config['repo']} for {$this->name}");
+        Log::i("finding latest source from github releases tags from {$this->config['repo']} for {$this->name}");
 
         if (($authHeader = Util::githubHeader())) {
             $headers = [
@@ -46,20 +60,40 @@ class GithubTarballSourceCodeSource extends SourceCodeSource
         }
 
         $data = json_decode(Util::fetch(
-            url: "https://api.github.com/repos/{$this->config['repo']}/releases",
+            url: "https://api.github.com/repos/{$this->config['repo']}/tags",
             headers: $headers ?? [],
         ), true);
 
-        $prefer = $data[0];
-        for ($i = count($data) - 1; $i >= 0; $i--) {
-            if ($data[$i]['prerelease']) {
-                continue;
+        $tags = array_map(function ($tagData) {
+            preg_match($this->config['match'], $tagData['name'], $match);
+            if (!$match) {
+                return null;
             }
-            $prefer = $data[$i];
+            return [
+                'name' => $tagData['name'],
+                'version' => $match['version'],
+                'tarball_url' => $tagData['tarball_url'],
+            ];
+        }, $data);
+        $tags = array_filter($tags);
+        usort(
+            $tags,
+            function ($a, $b) {
+                return (version_compare(
+                    static::normalizeTagVersion($a['version']),
+                    static::normalizeTagVersion($b['version']),
+                    '<'
+                )) ? 1 : -1;
+            }
+        );
+
+        if (!$tags) {
+            throw new Exception("failed to find source");
         }
 
-        $this->url = $prefer['tarball_url'];
-        $this->tagName = $prefer['tag_name'];
+        $this->url = $tags[0]['tarball_url'];
+        $this->tagName = $tags[0]['name'];
+        Log::i("chosen {$this->url} for {$this->name} {$this->tagName}");
 
         $headers = Util::fetch(
             url: $this->url,

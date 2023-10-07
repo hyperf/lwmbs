@@ -36,6 +36,7 @@ class MicroBuild
         if ($this->config->getExt('zstd')) {
             Util::zstdAPCufix();
         }
+        Util::patchGD();
 
         passthru(
             "cd src\\php-src && {$this->config->phpBinarySDKCmd} -t buildconf.bat",
@@ -105,6 +106,9 @@ class MicroBuild
         }
         if ($this->config->getLib('curl')) {
             $extra_libs .= ' wldap32.lib';
+        }
+        if ($this->config->getLib('libwebp')) {
+            $extra_libs .= ' libsharpyuv.lib';
         }
 
         $nmake_wrapper_bat_contents =

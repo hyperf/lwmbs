@@ -53,6 +53,24 @@ trait UnixExtensionTrait
                 $arg .= ' ' .
                     'PNG_CFLAGS=-I"' . realpath('include') . '" ' .
                     'PNG_LIBS="' . $this->getStaticLibFiles() . '" ';
+                if ($this->config->getLib('libjpegturbo')) {
+                    $arg .= ' ' .
+                        'JPEG_CFLAGS=-I"' . realpath('include') . '" ' .
+                        'JPEG_LIBS="' . $this->getStaticLibFiles() . '" ';
+                    $arg .= ' --with-jpeg ';
+                }
+                if ($this->config->getLib('freetype')) {
+                    $arg .= ' ' .
+                        'FREETYPE2_CFLAGS=-I"' . realpath('include') . '/freetype2" ' .
+                        'FREETYPE2_LIBS="' . $this->getStaticLibFiles() . '" ';
+                    $arg .= ' --with-freetype ';
+                }
+                if ($this->config->getLib('libwebp')) {
+                    $arg .= ' ' .
+                        'WEBP_CFLAGS=-I"' . realpath('include') . '" ' .
+                        'WEBP_LIBS="' . $this->getStaticLibFiles() . '" ';
+                    $arg .= ' --with-webp ';
+                }
                 // TODO: other libraries
             case 'phar':
             case 'zlib':
