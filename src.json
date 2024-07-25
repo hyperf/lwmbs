@@ -46,7 +46,7 @@
         },
         "openssl": {
             "type": "ghasset",
-            "url": "openssl/openssl",
+            "repo": "openssl/openssl",
             "match": "openssl-.+\\.tar\\.gz",
             "license": {
                 "type": "file",
